@@ -1,0 +1,14 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.0.0
+Date: 2026-11-09
+  Features:
+    - Drone launcher: a 5x5 launch pad that sends survey drones toward the nearest uncharted land.
+    - Survey drones fly out, land, and deploy into a slow-scanning radar probe, or an inflatable buoy on water.
+    - Probes sweep an 8-chunk radius, then shut down. A message with a map link marks each finished sweep.
+    - When everything in range is charted, drones keep flying out to refresh the map.
+    - Survey drones research (after radar and engine, red + green science) and three range upgrades
+      that double each level: 1024 base, then +1024, +2048, +4096 tiles.
+    - Works on every planet.
+  Settings:
+    - Startup: launch interval, base range, first range research bonus.
+    - Map: drone flight speed, show drones on the map (icon + narrow charted flight trail), landing mode (nudge / fail / risky), risky failure chance, finished-probe messages.
