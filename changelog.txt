@@ -1,4 +1,23 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2026-11-12
+  Features:
+    - The drone launcher can face north, east, south or west. Rotate it with R while placing, or
+      press R / Shift+R over a placed launcher to turn its runway (drones inside are kept).
+    - Fancy flight paths (from WePlay: Long Haul Logistics): drones roll down the runway, climb
+      straight out, bank toward their target and fly a straight final approach to land.
+      Can be turned off in map settings for straight-line flights.
+    - Banking turns: drones roll into their turns (wings narrow, plane slides toward the inside of
+      the turn). Can be turned off in map settings.
+  Graphics:
+    - New launcher art for all four runway directions.
+  Changes:
+    - The launcher and drone now get their own crafting-menu row, right after the radar's row,
+      worked out after overhaul mods (Krastorio 2, Space Exploration) finish moving things.
+  Bugfixes:
+    - Fixed a crash when rotating a placed launcher (Factorio 2.x renamed the crafter input inventory).
+    - Rotating a launcher mid-launch now returns the drone that was being prepared.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.0
 Date: 2026-11-09
   Features:

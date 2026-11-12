@@ -37,6 +37,20 @@ data:extend({
   },
   {
     type = "bool-setting",
+    name = "rpdl-fancy-flights",
+    setting_type = "runtime-global",
+    default_value = true,
+    order = "a15",
+  },
+  {
+    type = "bool-setting",
+    name = "rpdl-banking",
+    setting_type = "runtime-global",
+    default_value = true,
+    order = "a16",
+  },
+  {
+    type = "bool-setting",
     name = "rpdl-drone-map-icons",
     setting_type = "runtime-global",
     default_value = false,

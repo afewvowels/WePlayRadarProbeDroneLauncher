@@ -1,9 +1,14 @@
 {
   "name": "WePlayRadarProbeDroneLauncher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "WePlay: Radar Probe Drone Launcher",
   "author": "afewvowels",
   "factorio_version": "2.1",
-  "dependencies": ["base >= 2.1.0"],
+  "dependencies": [
+    "base >= 2.1.0",
+    "? Krastorio2",
+    "? Krastorio2-spaced-out",
+    "? space-exploration"
+  ],
   "description": "Launch survey drones from a 5x5 launch pad. They fly far out into the fog, land, and deploy into slow-scanning radar probes, with buoy versions for water. Works on every planet."
 }

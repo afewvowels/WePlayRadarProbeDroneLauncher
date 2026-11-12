@@ -36,10 +36,9 @@ local G = {
   probe_shadow   = layer("probe", "shadow",  { width = 457, height = 232 }, PROBE_SIZE),
   buoy_diffuse   = layer("probe-water", "diffuse", { width = 325, height = 320 }, PROBE_SIZE),
   buoy_shadow    = layer("probe-water", "shadow",  { width = 411, height = 205 }, PROBE_SIZE),
-  -- Launcher frames are full, untrimmed 512x512 renders. The model sits a bit
-  -- high in the frame, so it's nudged down 0.25 tiles to centre it on its 5x5 box.
-  launcher_diffuse = { file = P .. "/graphics/entity/launcher-diffuse.png", width = 512, height = 512, scale = 0.5, shift = { 0, 0.25 } },
-  launcher_shadow  = { file = P .. "/graphics/entity/launcher-shadow.png",  width = 512, height = 512, scale = 0.5, shift = { 0, 0.25 } },
+  -- Launcher: 4 frames (north, east, south, west), one per runway direction.
+  launcher_diffuse = layer("launcher", "diffuse", { width = 324, height = 330 }, 1),
+  launcher_shadow  = layer("launcher", "shadow",  { width = 419, height = 233 }, 1),
 }
 local LINE_LENGTH = 8 -- frames per row in every packed sheet
 
@@ -98,15 +97,13 @@ data:extend(sprites)
 ------------------------------------------------------------------------------
 -- Item group
 ------------------------------------------------------------------------------
--- Sit right next to the radar in the crafting menu, wherever the radar lives.
-local radar_item = data.raw.item and data.raw.item["radar"]
-local SUBGROUP, ORDER
-if radar_item and radar_item.subgroup then
-  SUBGROUP, ORDER = radar_item.subgroup, (radar_item.order or "z") .. "-rpdl-"
-else
-  data:extend({ { type = "item-subgroup", name = "rpdl-survey", group = "logistics", order = "a-rpdl" } })
-  SUBGROUP, ORDER = "rpdl-survey", ""
-end
+-- Our own crafting-menu row. data-final-fixes.lua moves the row to sit right
+-- after the radar's row, wherever the radar ends up once overhauls (Krastorio 2,
+-- Space Exploration, ...) have finished rearranging things.
+local SUBGROUP, ORDER = C.subgroup, ""
+data:extend({
+  { type = "item-subgroup", name = C.subgroup, group = "logistics", order = "z-rpdl" },
+})
 
 data:extend({
   { type = "recipe-category", name = C.launch_category },
@@ -132,7 +129,7 @@ data:extend({
     icon_size = 64,
     subgroup = SUBGROUP,
     order = ORDER .. "a",
-    place_result = C.launcher,
+    place_result = C.launcher_placer,
     stack_size = 10,
   },
 })
@@ -189,14 +186,22 @@ data:extend({
 
 ------------------------------------------------------------------------------
 -- Launcher (5x5 assembling machine with a fixed "launch" recipe)
+--
+-- Same approach as WePlay: Long Haul Logistics: players and robots build a
+-- rotatable placer, and control.lua swaps it for the launcher prototype whose
+-- runway faces that way. R / Shift+R rotate placed launchers.
 ------------------------------------------------------------------------------
-local function single(def, extra)
+local LAUNCHER_COLLISION = { { -2.4, -2.4 }, { 2.4, 2.4 } }
+local LAUNCHER_SELECTION = { { -2.5, -2.5 }, { 2.5, 2.5 } }
+
+-- One frame (0-3) cut from a 4-frame sheet
+local function frame_layer(def, frame, extra)
   local s = {
     filename = def.file,
     width = def.width, height = def.height,
+    x = frame * def.width,
     shift = def.shift,
     scale = def.scale,
-    frame_count = 1,
   }
   for k, v in pairs(extra or {}) do s[k] = v end
   return s
@@ -204,37 +209,87 @@ end
 
 data:extend({
   {
-    type = "assembling-machine",
-    name = C.launcher,
+    type = "simple-entity-with-owner",
+    name = C.launcher_placer,
+    localised_name = { "entity-name." .. C.launcher },
     icon = P .. "/graphics/icons/drone-launcher.png",
     icon_size = 64,
-    flags = { "placeable-neutral", "placeable-player", "player-creation" },
+    hidden_in_factoriopedia = true,
+    flags = { "placeable-player", "player-creation", "not-upgradable" },
     minable = { mining_time = 1, result = C.launcher },
+    placeable_by = { item = C.launcher, count = 1 },
     max_health = 800,
-    collision_box = { { -2.4, -2.4 }, { 2.4, 2.4 } },
-    selection_box = { { -2.5, -2.5 }, { 2.5, 2.5 } },
-    crafting_categories = { C.launch_category },
-    fixed_recipe = C.launch_recipe,
-    show_recipe_icon = false,
-    show_recipe_icon_on_map = false,
-    crafting_speed = 1,
-    module_slots = 0,
-    allowed_effects = {},
-    energy_source = {
-      type = "electric",
-      usage_priority = "secondary-input",
-      emissions_per_minute = { pollution = 2 },
-    },
-    energy_usage = "500kW",
-    graphics_set = {
-      animation = {
-        layers = {
-          single(G.launcher_diffuse),
-          single(G.launcher_shadow, { draw_as_shadow = true }),
+    collision_box = LAUNCHER_COLLISION,
+    selection_box = LAUNCHER_SELECTION,
+    render_layer = "object",
+    picture = {
+      sheets = {
+        {
+          filename = G.launcher_diffuse.file,
+          width = G.launcher_diffuse.width, height = G.launcher_diffuse.height,
+          frames = 4,
+          shift = G.launcher_diffuse.shift,
+          scale = G.launcher_diffuse.scale,
+        },
+        {
+          filename = G.launcher_shadow.file,
+          width = G.launcher_shadow.width, height = G.launcher_shadow.height,
+          frames = 4,
+          shift = G.launcher_shadow.shift,
+          scale = G.launcher_shadow.scale,
+          draw_as_shadow = true,
         },
       },
     },
   },
+})
+
+for frame, dir in ipairs(C.launcher_dirs) do
+  data:extend({
+    {
+      type = "assembling-machine",
+      name = C.launcher_by_dir[(frame - 1) * 4],
+      localised_name = { "entity-name." .. C.launcher },
+      localised_description = { "entity-description." .. C.launcher },
+      icon = P .. "/graphics/icons/drone-launcher.png",
+      icon_size = 64,
+      hidden_in_factoriopedia = dir ~= "north",
+      flags = { "placeable-neutral", "placeable-player", "player-creation" },
+      minable = { mining_time = 1, result = C.launcher },
+      placeable_by = { item = C.launcher, count = 1 },
+      max_health = 800,
+      corpse = "big-remnants",
+      collision_box = LAUNCHER_COLLISION,
+      selection_box = LAUNCHER_SELECTION,
+      crafting_categories = { C.launch_category },
+      fixed_recipe = C.launch_recipe,
+      show_recipe_icon = false,
+      show_recipe_icon_on_map = false,
+      crafting_speed = 1,
+      module_slots = 0,
+      allowed_effects = {},
+      energy_source = {
+        type = "electric",
+        usage_priority = "secondary-input",
+        emissions_per_minute = { pollution = 2 },
+      },
+      energy_usage = "500kW",
+      graphics_set = {
+        animation = {
+          layers = {
+            frame_layer(G.launcher_diffuse, frame - 1),
+            frame_layer(G.launcher_shadow, frame - 1, { draw_as_shadow = true }),
+          },
+        },
+      },
+    },
+  })
+end
+
+-- R / Shift+R on a placed launcher turns its runway (handled in control.lua).
+data:extend({
+  { type = "custom-input", name = "rpdl-rotate",         key_sequence = "", linked_game_control = "rotate" },
+  { type = "custom-input", name = "rpdl-reverse-rotate", key_sequence = "", linked_game_control = "reverse-rotate" },
 })
 
 ------------------------------------------------------------------------------
